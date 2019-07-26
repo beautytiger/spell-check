@@ -12,7 +12,9 @@ pattern_num = r"#\w+"  # #yourname
 pattern_comment = r"(?://[^\n]*|/\*(?:(?!\*/).)*\*/)"  # /* comment */ or // comment
 pattern_logging = r'\("(.*?)"'  # ("hello world"
 pattern_camelcase = r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)"  # helloWorld
-
+pattern_todo = r"TODO\(.*\)"  # TODO(mkwiek)
+pattern_email = r"([\w\.-]+@[\w\.-]+\.[\w]+)"
+pattern_repeat = r'(.)\1\1\1\1*'
 
 TYPO_WORDS_FILE = "typos.txt"
 TYPO_WORDS_BY_FILE = "output.txt"
@@ -38,6 +40,8 @@ spell = init_spell_check()
 def run_spell_check(project=None, ext=(".go", ".md")):
     if not project:
         return
+    if "/" not in project:
+        project = get_projects(project)
     for file in walk_dir(project):
         if get_file_extension(file) in ext:
             feed(file)
@@ -46,6 +50,8 @@ def run_spell_check(project=None, ext=(".go", ".md")):
 def run_file_ext_statistics(project=None):
     if not project:
         return
+    if "/" not in project:
+        project = get_projects(project)
     statistics = defaultdict(int)
     for file in walk_dir(project):
         if not is_qualified_file(file):
@@ -76,10 +82,18 @@ def is_qualified_file(file):
         return False
     # kubernetes项目
     for i in [
+        # kubernetes
         "kubectl/explain/formatter_test.go",
         "kubectl/explain/model_printer_test.go",
         "kubectl/explain/fields_printer_test.go",
         "/generated/",
+        # go 测试文件，可跳过
+        "_test.go",
+
+        # prometheus
+        "assets_vfsdata.go",
+        "MAINTAINERS",
+        "/meetups"
     ]:
         if i in file:
             return False
@@ -100,20 +114,33 @@ def get_text(file):
     with open(file, "r") as f:
         text = f.read()
     if get_file_extension(file) == ".go":
-        comments = re.findall(pattern_comment, text, re.DOTALL)
+        # comments = re.findall(pattern_comment, text, re.DOTALL)
+        comments = []
         logs = re.findall(pattern_logging, text, re.DOTALL)
         text = " ".join(comments) + " " + " ".join(logs)
     return text
 
 
-def parse_words(string):
-    string = string.replace("\n", " ").replace("\r", "")
+def clean_text(string):
+    string = string.replace("\n", " ").replace("\r", "").replace("\\n", " ").replace("%s", " ").replace("%v", " ").replace("%q", " ")
+    # email
+    string = re.sub(pattern_email, "", string)
+    # print(re.findall(pattern_email, string))
     # 删除url
     string = re.sub(pattern_url, "", string)
     # 删除@someone这种格式的人名
     string = re.sub(pattern_note, "", string)
     # 删除#someone这种格式的人名
     string = re.sub(pattern_num, "", string)
+    # 删除TODO(someone)这种格式的人名
+    string = re.sub(pattern_todo, "", string)
+    # repeat
+    # print(re.findall(pattern_repeat, string))
+    string = re.sub(pattern_repeat, " ", string)
+    return string
+
+
+def parse_words(string):
     # 进行第一次分词
     raw_words = re.findall(pattern_word, string)
     words = list()
@@ -131,7 +158,12 @@ def parse_words(string):
 
 def parse_misspelled(file):
     raw_text = get_text(file)
-    words = parse_words(raw_text)
+    # print(file)
+    # print("raw text:", raw_text)
+    clear_text = clean_text(raw_text)
+    # print("clean text:", clear_text)
+    words = parse_words(clear_text)
+    # print("words:", words)
     bad_words = spell.unknown(words)
     if not bad_words:
         return
@@ -160,10 +192,11 @@ def print_cache(project="", file=""):
         # print("#", i)
         for j in output[i]:
             out = "{path}:{line}:{row}: {short_code}: {message}".format(
-                path=j[0][pro_len:],
+                # path=j[0][pro_len:],
+                path=j[0],
                 line=0,
                 row=0,
-                short_code="typos",
+                short_code="TYPOS",
                 message=" ".join(sorted(list(j[1]))),
             )
             if file:
@@ -191,16 +224,20 @@ def save_typo_words(file=""):
 
 
 def get_projects(project="kubernetes"):
-    if project == "kubernetes":
-        return "/home/matrix/go/src/k8s.io/kubernetes"
-    elif project == "prometheus":
-        return "/home/matrix/go/src/github.com/prometheus/prometheus"
-    else:
-        # helm envoy fluentd coredns containerd tikv etcd
-        return os.path.join("/home/matrix/workspace/github", project)
+    # kubernetes prometheus helm envoy fluentd coredns containerd tikv etcd
+    return os.path.join("/home/matrix/workspace/github", project)
+
+
+def run_test():
+    text = get_text("test.go")
+    print(text)
+    text = clean_text(text)
+    print(text)
 
 
 if __name__ == "__main__":
+    # run_test()
+
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -228,6 +265,6 @@ if __name__ == "__main__":
     # project = get_projects()
     project = args.project
     # run_file_ext_statistics(project=project)
-    run_spell_check(project=project)
+    run_spell_check(project=project, ext=(".go",))
     save_typo_words(file=args.typofiles)
     print_cache(project=project, file=args.typofiles)
