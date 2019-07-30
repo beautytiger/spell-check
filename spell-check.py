@@ -15,6 +15,7 @@ pattern_camelcase = r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)"  # helloWorld
 pattern_todo = r"TODO\(.*\)"  # TODO(mkwiek)
 pattern_email = r"([\w\.-]+@[\w\.-]+\.[\w]+)"
 pattern_repeat = r'(.)\1\1\1\1*'
+pattern_contain_num = r".*\d.*"
 
 TYPO_WORDS_FILE = "typos.txt"
 TYPO_WORDS_BY_FILE = "output.txt"
@@ -122,7 +123,10 @@ def get_text(file):
 
 
 def clean_text(string):
-    string = string.replace("\n", " ").replace("\r", "").replace("\\n", " ").replace("%s", " ").replace("%v", " ").replace("%q", " ")
+    # 替换一些常见的无效字符
+    string = string.\
+        replace("\n", " ").replace("\r", "").replace("\\n", " ").\
+        replace("%s", " ").replace("%v", " ").replace("%q", " ")
     # email
     string = re.sub(pattern_email, "", string)
     # print(re.findall(pattern_email, string))
@@ -146,7 +150,7 @@ def parse_words(string):
     words = list()
     for w in raw_words:
         # 跳过带连字符或者包含数字的词
-        if "_" in w or re.match(r".*\d.*", w):
+        if "_" in w or re.match(pattern_contain_num, w):
             continue
         if len(w) <= 2:
             continue
