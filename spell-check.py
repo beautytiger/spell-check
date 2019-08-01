@@ -3,19 +3,19 @@ import re
 from collections import defaultdict
 from spellchecker import SpellChecker
 
+from utils.helper import parse_words
+
+
 cache = dict()
 
-pattern_word = r"\b\w+\b"
 pattern_url = r"""(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))"""
 pattern_note = r"@\w+"  # @yourname
 pattern_num = r"#\w+"  # #yourname
 pattern_comment = r"(?://[^\n]*|/\*(?:(?!\*/).)*\*/)"  # /* comment */ or // comment
 pattern_logging = r'\("(.*?)"'  # ("hello world"
-pattern_camelcase = r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)"  # helloWorld
 pattern_todo = r"TODO\(.*\)"  # TODO(mkwiek)
 pattern_email = r"([\w\.-]+@[\w\.-]+\.[\w]+)"
 pattern_repeat = r'(.)\1\1\1\1*'
-pattern_contain_num = r".*\d.*"
 
 TYPO_WORDS_FILE = "typos.txt"
 TYPO_WORDS_BY_FILE = "output.txt"
@@ -144,22 +144,6 @@ def clean_text(string):
     return string
 
 
-def parse_words(string):
-    # 进行第一次分词
-    raw_words = re.findall(pattern_word, string)
-    words = list()
-    for w in raw_words:
-        # 跳过带连字符或者包含数字的词
-        if "_" in w or re.match(pattern_contain_num, w):
-            continue
-        if len(w) <= 2:
-            continue
-        # 对camelcase的词进行二次分词
-        word_list = re.findall(pattern_camelcase, w)
-        words.extend(word_list)
-    return words
-
-
 def parse_misspelled(file):
     raw_text = get_text(file)
     # print(file)
@@ -249,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-k",
         "--known",
-        help="known words file path, default: words.txt",
+        help="file of all known words, default: words.txt",
         default=KNOWN_WORDS_FILE,
     )
     parser.add_argument(
@@ -261,7 +245,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-t",
         "--typofiles",
-        help="file of all typos group by file, default: output.txt",
+        help="file of all detected typos words, default: output.txt",
         default=TYPO_WORDS_BY_FILE,
     )
     args = parser.parse_args()

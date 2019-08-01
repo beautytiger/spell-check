@@ -35,6 +35,14 @@ def get_line_num(file):
     return idx + 1
 
 
+def no_need_test(file):
+    with open(file, "r") as f:
+        for l in f.readlines():
+            if l.startswith("func "):
+                return False
+    return True
+
+
 def main(project=""):
     if not project.startswith("/"):
         return
@@ -46,6 +54,8 @@ def main(project=""):
         if not f.endswith(".go"):
             continue
         if f.endswith("test.go"):
+            continue
+        if no_need_test(f):
             continue
         exist, lc, tlc = check_file(f)
         f = f[proj_str_len:]
