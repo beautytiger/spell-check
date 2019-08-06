@@ -69,7 +69,7 @@ def main(project=""):
 
 def get_file_name(name="", kind=""):
     now = datetime.now().strftime("%Y%m%d")
-    return "test-{}-{}-{}.txt".format(name, kind, now)
+    return "data/test-{}-{}-{}.txt".format(name, kind, now)
 
 
 def print_no_test(data, name=""):
