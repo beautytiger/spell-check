@@ -2,7 +2,19 @@
 # 在终端上进行彩色打印
 from termcolor import colored
 
-from utils.helper import multi_find
+
+# 返回字符串s包含字符串t的首坐标列表
+def multi_find(s, t, trunc=0):
+    if (not s) or (not t):
+        return []
+    result = list()
+    loc = s.find(t)
+    if loc == -1:
+        return []
+    else:
+        result.append(loc+trunc)
+        result.extend(multi_find(s[loc+len(t):], t, trunc=loc+len(t)+trunc))
+    return result
 
 
 def color_print_file(file, words=None, action=0):
@@ -11,6 +23,7 @@ def color_print_file(file, words=None, action=0):
     :param words: 需要彩色显示的单词列表
     :param action: 0代表只高亮行打印， 1代表全文打印
     """
+    print(file)
     with open(file, "r") as f:
         lines = f.readlines()
     for idx, s in enumerate(lines):

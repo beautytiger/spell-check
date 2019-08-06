@@ -1,5 +1,7 @@
 import re
 import os
+from datetime import datetime
+from .passport import is_qualified_file
 
 pattern_word = r"\b\w+\b"
 pattern_contain_num = r".*\d.*"
@@ -29,25 +31,11 @@ def get_file_extension(file):
     return os.path.splitext(file)[-1][1:].lower()
 
 
-# 返回字符串s包含字符串t的首坐标列表
-def multi_find(s, t, trunc=0):
-    if (not s) or (not t):
-        return []
-    result = list()
-    loc = s.find(t)
-    if loc == -1:
-        return []
-    else:
-        result.append(loc+trunc)
-        result.extend(multi_find(s[loc+len(t):], t, trunc=loc+len(t)+trunc))
-    return result
-
-
 # 解析字符串中的单词
 def parse_words(string):
     raw_words = parse_raw_words(string)
     clean_words = tidy_words(raw_words)
-    words = parse_camelcase(clean_words, drop=True)
+    words = parse_camelcase(clean_words, drop=False)
     return words
 
 
@@ -109,13 +97,13 @@ def clean_text(string):
     return string
 
 
-# 获取代码文件中的注释，适用于golang
+# 获取代码文件中的注释，适用于golang, cpp, c
 def get_comments(text):
     comments = re.findall(pattern_comment, text, re.DOTALL)
     return " ".join(comments)
 
 
-# 获取代码文件中的日志打印语句，适用于golang
+# 获取代码文件中的日志打印语句，适用于golang, python
 def get_log_str(text):
     logs = re.findall(pattern_logging, text, re.DOTALL)
     return " ".join(logs)
@@ -127,6 +115,52 @@ def walk_dir(path):
         for f in fnames:
             file = os.path.join(dir, f)
             yield file
+
+
+def print_freq_dict(data, top=30):
+    stat = [(k, v) for k, v in data.items()]
+    stat = sorted(stat, key=lambda i: i[1], reverse=True)
+    for idx, i in enumerate(stat):
+        # 只打印top30的文件
+        if idx >= top:
+            break
+        print("{:>20s}: {:<4d}".format(i[0], i[1]))
+
+
+def get_text(file, get_all=False):
+    if get_file_extension(file) not in ("go", "cc", "md", "py"):
+        return ""
+    if not is_qualified_file(file):
+        return ""
+    with open(file, "r") as f:
+        text = f.read()
+    if get_all:
+        return text
+    ext = get_file_extension(file)
+    if ext == "go":
+        comments = get_comments(text)
+        logs = get_log_str(text)
+        return comments + " " + logs
+    if ext == "cc":
+        comments = get_comments(text)
+        logs = get_log_str(text)
+        return comments + " " + logs
+    if ext == "md":
+        return text
+    return ""
+
+
+def get_project_name(project=""):
+    if project.endswith("/"):
+        return project.split("/")[-2].lower()
+    else:
+        return project.split("/")[-1].lower()
+
+
+def freq_get_file_name(name=""):
+    now = datetime.now().strftime("%Y%m%d")
+    # return "data/freq-{}-{}.txt".format(name, now)
+    return "data/freq-{}.txt".format(name)
 
 
 if __name__ == "__main__":
