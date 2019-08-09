@@ -1,16 +1,17 @@
 import simplejson
 from collections import defaultdict
 
-from utils.helper import parse_words, get_text, clean_text, walk_dir, get_project_name, freq_get_file_name
+from utils.helper import parse_words, get_text, clean_text, walk_dir, get_project_name, freq_get_file_name, timer
 
 
 def project_word_freq():
     allfrq = defaultdict(int)
-    with open("data/projects.txt", "r") as f:
+    with open("metadata/projects.txt", "r") as f:
         lines = f.readlines()
     for l in lines:
         path = l.strip()
         if path:
+            print(path)
             data = get_word_frequency(path)
             for i in data:
                 allfrq[i] += data[i]
@@ -19,6 +20,7 @@ def project_word_freq():
         f.write(data)
 
 
+@timer
 def get_word_frequency(project=""):
     wfrq = defaultdict(int)
     for file in walk_dir(project):
@@ -35,6 +37,4 @@ def get_word_frequency(project=""):
 
 
 if __name__ == "__main__":
-    # project = "/home/matrix/workspace/github/minikube"
-    # get_word_frequency(project)
     project_word_freq()

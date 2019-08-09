@@ -1,12 +1,21 @@
 import git
+from utils.helper import timer
 
-with open("data/projects.txt", "r") as f:
-    lines = f.readlines()
 
-for l in lines:
-    path = l.strip()
-    if path:
-        g = git.cmd.Git(path)
-        out = g.pull()
-        print(path)
-        print(out)
+def main():
+    with open("metadata/projects.txt", "r") as f:
+        for line in f.readlines():
+            gitpull(line.strip())
+            print()
+
+
+@timer
+def gitpull(path):
+    g = git.cmd.Git(path)
+    out = g.pull()
+    print(path, "-" * 80)
+    print(out)
+
+
+if __name__ == "__main__":
+    main()

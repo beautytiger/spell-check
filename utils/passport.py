@@ -28,16 +28,45 @@ def go_blacklist(file=""):
         "kubectl/explain/model_printer_test.go",
         "kubectl/explain/fields_printer_test.go",
         "/generated/",
+        # 测试包，可跳过
+        # "test",
         # go 测试文件，可跳过
-        # "_test.go",
+        "_test.go",
+        # 自动生成的changelog
+        "CHANGELOG",
+        "certs_test.go",
+        "certs.go",
+        "checks_test.go",
+        "certificates.go",
+        "x509_test.go",
+        "certificate_manager_test.go",
+        "update_owners.py",
+        "printer_test.go",
+        "secret_for_tls_test.go",
+        "key_test.go",
+        "storageversionhashdata/data.go",
+
+        # from go lint file
+        "zz_generated",
+        "generated.pb.go",
+        "generated.proto",
+        "types_swagger_doc_generated.go",
 
         # prometheus
         "assets_vfsdata.go",
         "MAINTAINERS",
+        "RELEASE",
         "/meetups",
 
         # etcd
         "etcd-dump-logs/README.md",
+
+        # helm
+        "CONTRIBUTING",
+
+        "AUTHORS.md",
+        "History.md",
+        "HISTORY.md",
     ]:
         if i in file:
             return False

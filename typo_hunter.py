@@ -1,51 +1,54 @@
 import json
-from collections import defaultdict
-from datetime import datetime
+import os
+import sys
 
-from utils.helper import parse_words, clean_text, get_file_extension, get_comments, get_log_str, walk_dir, get_text, get_project_name, freq_get_file_name
+from utils.helper import parse_words, clean_text, \
+    walk_dir, get_text, get_project_name, freq_get_file_name, save_all_typo_words, save_typo_by_file, \
+    load_dict, get_unknown_words, load_user_dict, timer
 from utils.spell_checker import spell_check
 
-from utils.passport import is_qualified_file
-from utils.color_print import color_print_file
-
-cache = dict()
-
-wfrq = defaultdict(int)
-
-wfrq_cache = dict()
-allfrq_cache = dict()
-
-
-TYPO_WORDS_FILE = "data/typos.txt"
-TYPO_WORDS_BY_FILE = "output.txt"
 
 spell = spell_check()
 
+dic = load_dict()
+user_dic = load_user_dict()
+
+
+def spell_get_unknown_words(words):
+    bad_words = spell.unknown(words)
+    result = set()
+    for w in bad_words:
+        result.add(w.lower())
+    return result
+
 
 def load_word_freq(project):
-    global wfrq_cache, allfrq_cache
+    wfrq_cache = dict()
+    allfrq_cache = dict()
     proj_name = get_project_name(project)
-    with open(freq_get_file_name(proj_name), "r") as f:
-        try:
+    try:
+        with open(freq_get_file_name(proj_name), "r") as f:
             wfrq_cache = json.load(f)
-        except json.decoder.JSONDecodeError:
-            print("json file empty: project")
-    with open(freq_get_file_name("all"), "r") as f:
-        try:
+    except Exception as e:
+        print("json file empty: project %s" % e)
+    try:
+        with open(freq_get_file_name("all"), "r") as f:
             allfrq_cache = json.load(f)
-        except json.decoder.JSONDecodeError:
-            print("json file empty: all")
+    except Exception as e:
+        print("json file empty: all %s" % e)
+    return wfrq_cache, allfrq_cache
 
 
-def run_spell_check(project=None, stat=False):
-    load_word_freq(project)
-    for file in walk_dir(project):
-        # 进行词频统计
-        parse_misspelled(file)
-
-
-def parse_misspelled(file):
-    raw_text = get_text(file)
+def get_all_words(file, level=2):
+    """
+    :param file: the target file to read
+    :param level: return word level,
+    2: code logging and error message
+    3: 2 and code comment
+    4: 3 and project document, markdown file etc.
+    :return: list of words
+    """
+    raw_text = get_text(file, level=level)
     if not raw_text:
         return
     # print(file)
@@ -54,116 +57,60 @@ def parse_misspelled(file):
     # print("clean text:", clear_text)
     words = parse_words(clear_text)
     # print("words:", words)
-    bad_words = spell.unknown(words)
-    bad_words = filter_bad_words(bad_words)
-    if not bad_words:
-        return
-    update_cache(file, bad_words)
+    return words
 
 
-def filter_bad_words(bad_words):
-    result = list()
-    for b in bad_words:
-        b = b.lower()
-        if wfrq_cache.get(b, 0) >= 5:
-            # print("pass", b)
+@timer
+def project_typo(project="", level=2):
+    print(project)
+    pro_freq, all_freq = load_word_freq(project)
+    # cache is a dict storing file name as key and a list of typos as its value
+    if os.path.isfile(project):
+        gen = [project, ]
+    else:
+        gen = walk_dir(project)
+    file_typo = dict()
+    for file in gen:
+        words = get_all_words(file, level=level)
+        if not words:
             continue
-        if allfrq_cache.get(b, 0) >= 10:
-            # print("pass", b)
-            continue
-        result.append(b)
-    return result
-
-
-def update_cache(file, bad_words):
-    global cache
-    cache[file] = bad_words
-
-
-def print_cache(project="", file=""):
-    global cache
-    pro_len = len(project)
-    if not project.endswith("/"):
-        pro_len += 1
-    output = defaultdict(list)
-    for k, v in cache.items():
-        output[len(v)].append((k, v))
-    lens = sorted(list(output.keys()), reverse=True)
-    if file:
-        file = open(file, "w")
-    for i in lens:
-        if file:
-            file.write("# {}\n".format(i))
-        # print("#", i)
-        for j in output[i]:
-            # color_print_file(j[0], j[1])
-            out = "{path}:{line}:{row}: {short_code}: {message}".format(
-                # path=j[0][pro_len:],
-                path=j[0],
-                line=0,
-                row=0,
-                short_code="TYPOS",
-                message=" ".join(sorted(list(j[1]))),
-            )
-            if file:
-                file.write(out+"\n")
-            print(out)
-
-
-def save_typo_words(file=""):
-    global cache
-    bad_words = set()
-    for v in cache.values():
-        bad_words = bad_words.union(v)
-    result = list(bad_words)
-    result.sort()
-    with open(TYPO_WORDS_FILE, "w") as t:
-        l = list()
-        for i in result:
-            l.append(i)
-            if len(" ".join(l)) >= 80:
-                t.write(" ".join(l) + "\n")
-                l = list()
+        bad_words1 = spell_get_unknown_words(words)
+        bad_words2 = get_unknown_words(words, dic)
+        bad_words = bad_words1.union(bad_words2)
+        bad_words = get_unknown_words(bad_words, user_dic)
+        result = list()
+        for b in bad_words:
+            b = b.lower()
+            if pro_freq.get(b, 0) >= 10:
+                # print("pass", b)
                 continue
-        else:
-            t.write(" ".join(l) + "\n")
+            if all_freq.get(b, 0) >= 30:
+                # print("pass", b)
+                continue
+            result.append(b)
+        if not result:
+            continue
+        file_typo[file] = result
+    save_all_typo_words(file_typo, project=project)
+    save_typo_by_file(file_typo, project=project)
+
+
+def all_project_typo(project="", level=2):
+    with open("metadata/projects.txt", "r") as f:
+        for line in f.readlines():
+            path = line.strip()
+            if path:
+                if project:
+                    if project in path.lower():
+                        project_typo(path, level=level)
+                else:
+                    project_typo(path, level=level)
 
 
 if __name__ == "__main__":
-    # run_test()
-    #
-    # import argparse
-    #
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("-p", "--project", help="project path to scan", default="")
-    # parser.add_argument(
-    #     "-m",
-    #     "--misspell",
-    #     help="file of all misspelled words, default: typos.txt",
-    #     default=TYPO_WORDS_FILE,
-    # )
-    # parser.add_argument(
-    #     "-t",
-    #     "--typofiles",
-    #     help="file of all detected typos words, default: output.txt",
-    #     default=TYPO_WORDS_BY_FILE,
-    # )
-    # args = parser.parse_args()
-    #
-    # # project = get_projects()
-    # project = args.project
-    # run_file_ext_statistics(project=project)
-    # project = "/home/matrix/workspace/github/kubernetes"
-    # project = "/home/matrix/workspace/github/minikube"
-    # project = "/home/matrix/workspace/github/prometheus"
-    # project = "/home/matrix/workspace/github/helm"
-    # project = "/home/matrix/workspace/github/vitess"
-    # project = "/home/matrix/workspace/github/kops"
-    # project = "/home/matrix/workspace/github/rook"
-    project = "/home/matrix/workspace/github/etcd"
-    # project = "/home/matrix/workspace/github/rkt"
-    # project = "/home/matrix/workspace/github/kubespray"
-    # project = "/home/matrix/workspace/github/tuf"
-    run_spell_check(project=project)
-    save_typo_words(file=TYPO_WORDS_BY_FILE)
-    print_cache(project=project)
+    if len(sys.argv) > 2:
+        all_project_typo(sys.argv[1], int(sys.argv[2]))
+    elif len(sys.argv) > 1:
+        all_project_typo(sys.argv[1])
+    else:
+        all_project_typo()

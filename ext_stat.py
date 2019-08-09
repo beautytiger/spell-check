@@ -23,13 +23,11 @@ def run_file_ext_statistics(project, cache):
 
 def main():
     cache = defaultdict(int)
-    with open("data/projects.txt", "r") as f:
-        lines = f.readlines()
-
-    for l in lines:
-        path = l.strip()
-        if path:
-            run_file_ext_statistics(path, cache=cache)
+    with open("metadata/projects.txt", "r") as f:
+        for line in f.readlines():
+            path = line.strip()
+            if path:
+                run_file_ext_statistics(path, cache=cache)
     print("ALL")
     print_freq_dict(cache)
 

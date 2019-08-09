@@ -1,3 +1,8 @@
-from utils.helper import clean_text, parse_words
+import re
 
-print(parse_words(clean_text("are normally served, but /readyz will return faillure immediately. ")))
+file = "/home/matrix/workspace/cncf/grpc/src/python/grpcio/grpc/framework/interfaces/face/face.py"
+pattern_multiline = r"'(.*?)'"
+
+text = open(file, "r").read()
+
+print(re.findall(pattern_multiline, text, re.DOTALL))

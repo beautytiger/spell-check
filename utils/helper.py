@@ -1,5 +1,7 @@
 import re
 import os
+import time
+from collections import defaultdict
 from datetime import datetime
 from .passport import is_qualified_file
 
@@ -23,7 +25,52 @@ pattern_repeat = r'(.)\1\1\1\1*'
 # golang的代码注释
 pattern_comment = r"(?://[^\n]*|/\*(?:(?!\*/).)*\*/)"  # /* comment */ or // comment
 # 一般的代码打印语句
-pattern_logging = r'\("(.*?)"'  # ("hello world"
+pattern_logging = r'"(.*?)"'
+pattern_logging_single = r"'(.*?)'"
+pattern_multiline = r'`.*?`'
+pattern_multiline_python = r'"""(.*?)"""'
+
+
+def timer(func):
+    def wrapper(*args, **kwargs):
+        before = time.time()
+        result = func(*args, **kwargs)
+        after = time.time()
+        print("time cost: {:.3f}".format(after-before))
+        return result
+    return wrapper
+
+
+def load_dict():
+    file = "metadata/words.dict"
+    with open(file, "r") as f:
+        words = f.read().split(" ")
+    dic = set(words)
+    return dic
+
+
+def load_user_dict():
+    file = "metadata/user.dict"
+    words = list()
+    with open(file, "r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line.startswith("#"):
+                continue
+            if not line:
+                continue
+            words += line.split(" ")
+    dic = set(words)
+    return dic
+
+
+def get_unknown_words(words, dic):
+    result = set()
+    for word in words:
+        lw = word.lower()
+        if lw not in dic:
+            result.add(lw)
+    return result
 
 
 # 返回文件的扩展名，小写
@@ -78,7 +125,7 @@ def parse_camelcase(words, drop=True):
 def clean_text(string):
     # 替换一些常见的无效字符
     string = string.\
-        replace("\n", " ").replace("\r", "").replace("\\n", " ").\
+        replace("\n", " ").replace("\r", "").replace("\\n", " ").replace("\\t", " ").\
         replace("%s", " ").replace("%v", " ").replace("%q", " ")
     # email
     string = re.sub(pattern_email, "", string)
@@ -106,6 +153,9 @@ def get_comments(text):
 # 获取代码文件中的日志打印语句，适用于golang, python
 def get_log_str(text):
     logs = re.findall(pattern_logging, text, re.DOTALL)
+    # logs += re.findall(pattern_logging_single, text, re.DOTALL)
+    logs += re.findall(pattern_multiline, text, re.DOTALL)
+    # logs += re.findall(pattern_multiline_python, text, re.DOTALL)
     return " ".join(logs)
 
 
@@ -127,25 +177,27 @@ def print_freq_dict(data, top=30):
         print("{:>20s}: {:<4d}".format(i[0], i[1]))
 
 
-def get_text(file, get_all=False):
-    if get_file_extension(file) not in ("go", "cc", "md", "py"):
+def get_text(file, get_all=False, level=2):
+    if os.path.islink(file):
         return ""
-    if not is_qualified_file(file):
+    ext = get_file_extension(file)
+    if ext not in ("go", "cc", "md", "py", "rb", "c", "h"):
         return ""
     with open(file, "r") as f:
         text = f.read()
     if get_all:
         return text
-    ext = get_file_extension(file)
-    if ext == "go":
-        comments = get_comments(text)
+    # 词频统计可以包含任意合法文件
+    if not is_qualified_file(file):
+        return ""
+    if ext in ("go", "py", "cc", "rb", "c", "h"):
+        if level >= 3:
+            comments = get_comments(text)
+        else:
+            comments = " "
         logs = get_log_str(text)
         return comments + " " + logs
-    if ext == "cc":
-        comments = get_comments(text)
-        logs = get_log_str(text)
-        return comments + " " + logs
-    if ext == "md":
+    if ext == "md" and level >= 4:
         return text
     return ""
 
@@ -160,7 +212,65 @@ def get_project_name(project=""):
 def freq_get_file_name(name=""):
     now = datetime.now().strftime("%Y%m%d")
     # return "data/freq-{}-{}.txt".format(name, now)
-    return "data/freq-{}.txt".format(name)
+    return "metadata/freq-{}.txt".format(name)
+
+
+def alltypo_get_file_name(name=""):
+    now = datetime.now().strftime("%Y%m%d")
+    # return "data/freq-{}-{}.txt".format(name, now)
+    return "data/alltypo-{}.txt".format(name)
+
+
+def filetypo_get_file_name(name=""):
+    now = datetime.now().strftime("%Y%m%d")
+    # return "data/freq-{}-{}.txt".format(name, now)
+    return "data/filetypo-{}.txt".format(name)
+
+
+def save_typo_by_file(data, project=""):
+    pro_name = get_project_name(project)
+    file_name = filetypo_get_file_name(pro_name)
+    file = open(file_name, "w")
+    output = defaultdict(list)
+    for k, v in data.items():
+        output[len(v)].append((k, v))
+    lens = sorted(list(output.keys()), reverse=True)
+    for i in lens:
+        for j in output[i]:
+            # color_print_file(j[0], j[1])
+            # out = "{path}:{line}:{row}: {short_code}: {message}".format(
+            #     path=j[0],
+            #     line=0,
+            #     row=0,
+            #     short_code="TYPOS",
+            #     message=" ".join(sorted(list(j[1]))),
+            # )
+            out = "{path}:  {message}".format(
+                path=j[0],
+                message=" ".join(sorted(list(j[1]))),
+            )
+            print(out)
+            file.write(out + "\n")
+
+
+def save_all_typo_words(data, project=""):
+    pro_name = get_project_name(project)
+    file_name = alltypo_get_file_name(pro_name)
+    bad_words = set()
+    for v in data.values():
+        bad_words = bad_words.union(v)
+    result = list(bad_words)
+    result.sort()
+    with open(file_name, "w") as t:
+        l = list()
+        for i in result:
+            l.append(i)
+            if len(" ".join(l)) >= 80:
+                t.write(" ".join(l) + "\n")
+                l = list()
+                continue
+        else:
+            t.write(" ".join(l) + "\n")
 
 
 if __name__ == "__main__":
