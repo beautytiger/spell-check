@@ -4,7 +4,7 @@ import sys
 
 from utils.helper import parse_words, clean_text, \
     walk_dir, get_text, get_project_name, freq_get_file_name, save_all_typo_words, save_typo_by_file, \
-    load_dict, get_unknown_words, load_user_dict, timer
+    load_dict, get_unknown_words, load_user_dict, timer, pre_filter
 from utils.spell_checker import spell_check
 
 
@@ -71,6 +71,8 @@ def project_typo(project="", level=2):
         gen = walk_dir(project)
     file_typo = dict()
     for file in gen:
+        if not pre_filter(file, level=level):
+            continue
         words = get_all_words(file, level=level)
         if not words:
             continue

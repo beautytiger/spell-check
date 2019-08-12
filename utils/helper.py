@@ -2,7 +2,9 @@ import re
 import os
 import time
 from collections import defaultdict
+import git
 from datetime import datetime
+
 from .passport import is_qualified_file
 
 pattern_word = r"\b\w+\b"
@@ -20,7 +22,10 @@ pattern_num = r"#\w+"  # #yourname
 pattern_todo = r"TODO\(.*\)"  # TODO(mkwiek)
 pattern_email = r"([\w\.-]+@[\w\.-]+\.[\w]+)"
 pattern_repeat = r'(.)\1\1\1\1*'
-
+pattern_go_import = r'(import \(.*?\))'
+pattern_go_const = r'(const \(.*?\n\)\n)'
+pattern_go_const_oneline = r'(const.*?\n)'
+pattern_c_include = r'(#include.*?\n)'
 
 # golang的代码注释
 pattern_comment = r"(?://[^\n]*|/\*(?:(?!\*/).)*\*/)"  # /* comment */ or // comment
@@ -29,6 +34,20 @@ pattern_logging = r'"(.*?)"'
 pattern_logging_single = r"'(.*?)'"
 pattern_multiline = r'`.*?`'
 pattern_multiline_python = r'"""(.*?)"""'
+
+READABLE = ("go", "py", "cc", "rb", "rs", "md")
+SOURCE =   ("go", "py", "cc", "rb", "rs")
+
+
+# 无任何异常处理，十分脆弱，轻拿轻用
+def get_project_file_prefix(project=""):
+    g = git.cmd.Git(project)
+    result = g.remote(verbose=True)
+    project_url = result.split(" ")[0].split("\t")[1]
+    if project_url.endswith(".git"):
+        project_url = project_url[:-4]
+    file_prefix = "/blob/master/"
+    return project_url + file_prefix
 
 
 def timer(func):
@@ -167,30 +186,66 @@ def walk_dir(path):
             yield file
 
 
-def print_freq_dict(data, top=30):
+def print_freq_dict(data, top=20):
     stat = [(k, v) for k, v in data.items()]
     stat = sorted(stat, key=lambda i: i[1], reverse=True)
     for idx, i in enumerate(stat):
-        # 只打印top30的文件
+        # 只打印top20的文件
         if idx >= top:
             break
         print("{:>20s}: {:<4d}".format(i[0], i[1]))
+
+
+def pre_clean(text, ext=""):
+    # go import
+    text = re.sub(pattern_go_import, " ", text, flags=re.DOTALL)
+    # go const, notice this will kill comment in const block
+    text = re.sub(pattern_go_const, " ", text, flags=re.DOTALL)
+    if ext == "go":
+        text = re.sub(pattern_go_const_oneline, " ", text, flags=re.DOTALL)
+    # 与上面的go const略有冲突
+    text = re.sub(pattern_c_include, " ", text)
+    return text
+
+
+def pre_filter(file, level=2):
+    ext = get_file_extension(file)
+    if ext not in READABLE:
+        return False
+    if file.endswith(".pb.go"):
+        return False
+    if file.endswith("_test.go"):
+        return False
+    if file.endswith("keystoretest/keymap.go"):
+        return False
+    if file.endswith("mysql/constants.go"):
+        return False
+    if file.endswith("boringssl/crypto_test_data.cc"):
+        return False
+    if file.endswith("end2end/tests/hpack_size.cc"):
+        return False
+    if "/vendor/" in file:
+        return False
+    if ext == "md" and level <= 3:
+        return False
+    return True
 
 
 def get_text(file, get_all=False, level=2):
     if os.path.islink(file):
         return ""
     ext = get_file_extension(file)
-    if ext not in ("go", "cc", "md", "py", "rb", "c", "h"):
+    if ext not in READABLE:
         return ""
     with open(file, "r") as f:
         text = f.read()
+        text = pre_clean(text, ext=ext)
     if get_all:
         return text
     # 词频统计可以包含任意合法文件
     if not is_qualified_file(file):
         return ""
-    if ext in ("go", "py", "cc", "rb", "c", "h"):
+    if ext in SOURCE:
         if level >= 3:
             comments = get_comments(text)
         else:
@@ -228,6 +283,7 @@ def filetypo_get_file_name(name=""):
 
 
 def save_typo_by_file(data, project=""):
+    url_prefix = get_project_file_prefix(project)
     pro_name = get_project_name(project)
     file_name = filetypo_get_file_name(pro_name)
     file = open(file_name, "w")
@@ -251,6 +307,8 @@ def save_typo_by_file(data, project=""):
             )
             print(out)
             file.write(out + "\n")
+            file_url = url_prefix + j[0][len(project)+1:]
+            file.write(file_url + "\n")
 
 
 def save_all_typo_words(data, project=""):

@@ -29,7 +29,7 @@ def main():
             if path:
                 run_file_ext_statistics(path, cache=cache)
     print("ALL")
-    print_freq_dict(cache)
+    print_freq_dict(cache, top=300)
 
 
 if __name__ == "__main__":
