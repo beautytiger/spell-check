@@ -60,6 +60,7 @@ def timer(func):
     return wrapper
 
 
+# deprecated 2019-08-13
 def load_dict():
     file = "metadata/words.dict"
     with open(file, "r") as f:
@@ -225,6 +226,10 @@ def pre_filter(file, level=2):
     if file.endswith("end2end/tests/hpack_size.cc"):
         return False
     if file.endswith("gen_assets.go"):
+        return False
+    if file.endswith("OWNERS.md"):
+        return False
+    if file.endswith("OWNERS.md"):
         return False
     if "/vendor/" in file:
         return False

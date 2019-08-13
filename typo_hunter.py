@@ -10,7 +10,6 @@ from utils.spell_checker import spell_check
 
 spell = spell_check()
 
-dic = load_dict()
 user_dic = load_user_dict()
 
 
@@ -76,9 +75,7 @@ def project_typo(project="", level=2):
         words = get_all_words(file, level=level)
         if not words:
             continue
-        bad_words1 = spell_get_unknown_words(words)
-        bad_words2 = get_unknown_words(words, dic)
-        bad_words = bad_words1.union(bad_words2)
+        bad_words = spell_get_unknown_words(words)
         bad_words = get_unknown_words(bad_words, user_dic)
         result = list()
         for b in bad_words:

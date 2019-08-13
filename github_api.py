@@ -122,6 +122,16 @@ ignore = {
     "OpenMetrics",
     "tuf",
     "flux",
+    "brigade",
+    "etcd",
+    "kind",
+    "prometheus",
+    "containerd",
+    "jaeger",
+    "cri-o",
+    "coredns",
+    "linkerd2",
+    "opentelemetry-service",
 }
 print("todo:", "-"*80)
 for p in all_projects:
