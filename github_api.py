@@ -1,3 +1,5 @@
+from collections import defaultdict
+from datetime import datetime, timedelta
 import requests
 
 
@@ -59,9 +61,19 @@ response = requests.post(url=url, json=json, headers=headers)
 data = response.json()
 prs = data["data"]["user"]["pullRequests"]["nodes"]
 
+
+def localize_time(data):
+    data["createdAt"] = datetime.strptime(data["createdAt"], "%Y-%m-%dT%H:%M:%SZ") + timedelta(hours=8)
+    if data["closedAt"]:
+        data["closedAt"] = datetime.strptime(data["closedAt"], "%Y-%m-%dT%H:%M:%SZ") + timedelta(hours=8)
+    if data["mergedAt"]:
+        data["mergedAt"] = datetime.strptime(data["mergedAt"], "%Y-%m-%dT%H:%M:%SZ") + timedelta(hours=8)
+
+
 merged = list()
 active = list()
 for pr in prs:
+    localize_time(pr)
     if pr["merged"]:
         merged.append(pr)
     if not pr["closed"]:
@@ -70,10 +82,48 @@ for pr in prs:
 merged = sorted(merged, key=lambda item: (item["mergedAt"], item["url"]), reverse=True)
 active = sorted(active, key=lambda item: (item["createdAt"], item["url"]), reverse=True)
 
+merged_stat = defaultdict(int)
+active_stat = defaultdict(int)
+
 print("merged:", "-"*80)
 for item in merged:
     print(item["mergedAt"], item["url"])
+    merged_stat[item["url"].split("/")[4]] += 1
 
 print("active:", "-"*80)
 for item in active:
     print(item["createdAt"], item["url"])
+    active_stat[item["url"].split("/")[4]] += 1
+
+print("merged stats:", "-"*80)
+print(dict(merged_stat))
+
+print("active:", "-"*80)
+print(dict(active_stat))
+
+all_projects = set()
+with open("metadata/projects.txt") as f:
+    for line in f.readlines():
+        all_projects.add(line.strip().split("/")[-1])
+
+ignore = {
+    "falco",
+    "spire",
+    "telepresence",
+    "nats-server",
+    "cni",
+    "kubespray",
+    "openebs",
+    "kubeadm",
+    "spiffe",
+    "spec",
+    "pack",
+    "opentracing-go",
+    "OpenMetrics",
+    "tuf",
+    "flux",
+}
+print("todo:", "-"*80)
+for p in all_projects:
+    if p not in active_stat and p not in ignore:
+        print(p)

@@ -5,8 +5,14 @@ from utils.helper import timer
 def main():
     with open("metadata/projects.txt", "r") as f:
         for line in f.readlines():
-            gitpull(line.strip())
-            print()
+            project = line.strip()
+            try:
+                gitpull(project)
+                print()
+            except Exception as e:
+                print(project)
+                print(e)
+                continue
 
 
 @timer

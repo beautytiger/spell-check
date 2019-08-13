@@ -12,6 +12,8 @@ def is_qualified_file(file=""):
     # 跳过 .git 目录
     if "/.git/" in file:
         return False
+    if "/node_modules/" in file:
+        return False
     # 先跳过测试
     # if "test" in file:
     #     return False

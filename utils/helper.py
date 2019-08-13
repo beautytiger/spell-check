@@ -224,7 +224,11 @@ def pre_filter(file, level=2):
         return False
     if file.endswith("end2end/tests/hpack_size.cc"):
         return False
+    if file.endswith("gen_assets.go"):
+        return False
     if "/vendor/" in file:
+        return False
+    if "/node_modules/" in file:
         return False
     if ext == "md" and level <= 3:
         return False
