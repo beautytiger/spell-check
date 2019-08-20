@@ -229,11 +229,43 @@ def pre_filter(file, level=2):
         return False
     if file.endswith("OWNERS.md"):
         return False
-    if file.endswith("OWNERS.md"):
+    if file.endswith(".gen.go"):
+        return False
+    if file.endswith("known-issues.md"):
+        return False
+    if file.endswith("/README-ES.md"):
+        return False
+    if file.endswith("/CONTRIBUTORS.md"):
+        return False
+    if file.endswith("generated.go"):
+        return False
+    if file.endswith("NOTES.md"):
+        return False
+    if file.endswith("testutils/keys/keys.go"):
+        return False
+    if file.endswith(".tr.md"):
+        return False
+    if file.endswith(".de.md"):
+        return False
+    if file.endswith("changelog.md"):
+        return False
+    if file.endswith("/contributors.md"):
+        return False
+    if file.endswith("/community.md"):
         return False
     if "/vendor/" in file:
         return False
     if "/node_modules/" in file:
+        return False
+    if "/third_party/" in file:
+        return False
+    if "/.github/" in file:
+        return False
+    if "/meetings/" in file:
+        return False
+    if "/proposals/" in file:
+        return False
+    if "/testdata/" in file:
         return False
     if ext == "md" and level <= 3:
         return False

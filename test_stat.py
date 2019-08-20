@@ -98,4 +98,4 @@ def print_have_test(data, name=""):
 
 
 if __name__ == "__main__":
-    main("/home/matrix/go/src/k8s.io/kubernetes")
+    main("/home/matrix/workspace/cncf/helm")

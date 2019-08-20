@@ -80,17 +80,17 @@ def project_typo(project="", level=2):
         result = list()
         for b in bad_words:
             b = b.lower()
-            if pro_freq.get(b, 0) >= 10:
+            if pro_freq.get(b, 0) >= 8:
                 # print("pass", b)
                 continue
-            if all_freq.get(b, 0) >= 30:
+            if all_freq.get(b, 0) >= 24:
                 # print("pass", b)
                 continue
             result.append(b)
         if not result:
             continue
         file_typo[file] = result
-    save_all_typo_words(file_typo, project=project)
+    # save_all_typo_words(file_typo, project=project)
     save_typo_by_file(file_typo, project=project)
 
 
@@ -100,7 +100,9 @@ def all_project_typo(project="", level=2):
             path = line.strip()
             if path:
                 if project:
-                    if project in path.lower():
+                    if project == "all":
+                        project_typo(path, level=level)
+                    elif project in path.lower():
                         project_typo(path, level=level)
                 else:
                     project_typo(path, level=level)
