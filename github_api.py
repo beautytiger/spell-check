@@ -13,6 +13,7 @@ def get_github_token():
     user = file.readline().strip()
     return user, token
 
+now = datetime.now()
 
 github_id, api_token = get_github_token()
 
@@ -77,6 +78,8 @@ def query_data(user_id="", cursor=""):
     headers = {"Authorization": "token %s" % api_token}
     json = {"query": req}
     response = requests.post(url=url, json=json, headers=headers)
+    print(response.status_code)
+    print(response.text)
     return response.json()
 
 
@@ -167,6 +170,7 @@ def general_info():
         "thanos",
         "typha",
         "envoy",
+        "fluentd",
     }
 
     ignore_twice = {
@@ -190,6 +194,7 @@ def general_info():
         "telepresence",
         "virtual-kubelet",
         "notary",
+        "fluentd",
     }
 
     todo_ignore = list()
@@ -197,19 +202,43 @@ def general_info():
     for p in all_projects:
         if p not in active_stat:
             if p not in ignore:
-                print(p)
+                for j in merged:
+                    if p in j["url"]:
+                        gap = now - j["mergedAt"]
+                        print(print_timedelta(gap), p)
+                        break
+                else:
+                    print(p)
             else:
                 todo_ignore.append(p)
 
     print("todo ignored:", "-"*80)
     for i in todo_ignore:
         if i not in ignore_twice:
-            print(i)
+            for j in merged:
+                if i in j["url"]:
+                    gap = now - j["mergedAt"]
+                    print(print_timedelta(gap), i)
+                    break
+            else:
+                print(i)
 
     print("todo if you have time:", "-"*80)
     for i in todo_ignore:
         if i in ignore_twice:
-            print(i)
+            for j in merged:
+                if i in j["url"]:
+                    gap = now - j["mergedAt"]
+                    print(print_timedelta(gap), i)
+                    break
+            else:
+                print(i)
+
+
+def print_timedelta(delta):
+    days = delta.days
+    hour = int((delta.total_seconds() - days*60*60*24) // (60*60))
+    return "{:02d}d{:02d}hour".format(days, hour)
 
 
 def print_report():

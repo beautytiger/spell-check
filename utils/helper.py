@@ -39,6 +39,13 @@ READABLE = ("go", "py", "cc", "rb", "rs", "md")
 SOURCE =   ("go", "py", "cc", "rb", "rs")
 
 
+def get_project():
+    basedir = "/home/matrix/workspace/cncf"
+    for path in os.listdir(basedir):
+        project = os.path.join(basedir, path)
+        yield project
+
+
 # 无任何异常处理，十分脆弱，轻拿轻用
 def get_project_file_prefix(project=""):
     g = git.cmd.Git(project)

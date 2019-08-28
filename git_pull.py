@@ -1,18 +1,16 @@
 import git
-from utils.helper import timer
+from utils.helper import timer, get_project
 
 
 def main():
-    with open("metadata/projects.txt", "r") as f:
-        for line in f.readlines():
-            project = line.strip()
-            try:
-                gitpull(project)
-                print()
-            except Exception as e:
-                print(project)
-                print(e)
-                continue
+    for project in get_project():
+        try:
+            gitpull(project)
+            print()
+        except Exception as e:
+            print(project)
+            print(e)
+            continue
 
 
 @timer

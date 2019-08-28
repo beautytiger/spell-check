@@ -4,7 +4,7 @@ import sys
 
 from utils.helper import parse_words, clean_text, \
     walk_dir, get_text, get_project_name, freq_get_file_name, save_all_typo_words, save_typo_by_file, \
-    load_dict, get_unknown_words, load_user_dict, timer, pre_filter
+    load_dict, get_unknown_words, load_user_dict, timer, pre_filter, get_project
 from utils.spell_checker import spell_check
 
 
@@ -95,17 +95,14 @@ def project_typo(project="", level=2):
 
 
 def all_project_typo(project="", level=2):
-    with open("metadata/projects.txt", "r") as f:
-        for line in f.readlines():
-            path = line.strip()
-            if path:
-                if project:
-                    if project == "all":
-                        project_typo(path, level=level)
-                    elif project in path.lower():
-                        project_typo(path, level=level)
-                else:
-                    project_typo(path, level=level)
+    for path in get_project():
+        if project:
+            if project == "all":
+                project_typo(path, level=level)
+            elif project in path.lower():
+                project_typo(path, level=level)
+        else:
+            project_typo(path, level=level)
 
 
 if __name__ == "__main__":

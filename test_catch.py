@@ -1,6 +1,6 @@
 # test get text result
 import sys
-from utils.helper import clean_text, get_text, pre_filter
+from utils.helper import get_text, pre_filter, get_project
 from utils.helper import walk_dir, timer
 
 
@@ -27,15 +27,12 @@ def project_typo(project="", level=2):
 
 
 def all_project_typo(project="", level=2):
-    with open("metadata/projects.txt", "r") as f:
-        for line in f.readlines():
-            path = line.strip()
-            if path:
-                if project:
-                    if project in path.lower():
-                        project_typo(path, level=level)
-                else:
-                    project_typo(path, level=level)
+    for path in get_project():
+        if project:
+            if project in path.lower():
+                project_typo(path, level=level)
+        else:
+            project_typo(path, level=level)
 
 
 if __name__ == "__main__":

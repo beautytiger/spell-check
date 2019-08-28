@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from utils.helper import get_file_extension, walk_dir, print_freq_dict
+from utils.helper import get_file_extension, walk_dir, print_freq_dict, get_project
 from utils.passport import is_qualified_file
 
 
@@ -23,11 +23,8 @@ def run_file_ext_statistics(project, cache):
 
 def main():
     cache = defaultdict(int)
-    with open("metadata/projects.txt", "r") as f:
-        for line in f.readlines():
-            path = line.strip()
-            if path:
-                run_file_ext_statistics(path, cache=cache)
+    for path in get_project():
+        run_file_ext_statistics(path, cache=cache)
     print("ALL")
     print_freq_dict(cache, top=300)
 

@@ -1,4 +1,5 @@
 import simplejson
+from utils.helper import get_project
 from collections import defaultdict
 
 from utils.helper import parse_words, get_text, clean_text, walk_dir, get_project_name, freq_get_file_name, timer
@@ -6,15 +7,11 @@ from utils.helper import parse_words, get_text, clean_text, walk_dir, get_projec
 
 def project_word_freq():
     allfrq = defaultdict(int)
-    with open("metadata/projects.txt", "r") as f:
-        lines = f.readlines()
-    for l in lines:
-        path = l.strip()
-        if path:
-            print(path)
-            data = get_word_frequency(path)
-            for i in data:
-                allfrq[i] += data[i]
+    for path in get_project():
+        print(path)
+        data = get_word_frequency(path)
+        for i in data:
+            allfrq[i] += data[i]
     data = simplejson.dumps(allfrq, indent=4, item_sort_key=lambda i: (-i[1], i[0]))
     with open(freq_get_file_name("all"), "w") as f:
         f.write(data)
