@@ -279,6 +279,17 @@ def pre_filter(file, level=2):
     return True
 
 
+def get_text_simple(file):
+    if os.path.islink(file):
+        return ""
+    ext = get_file_extension(file)
+    if ext not in READABLE:
+        return ""
+    with open(file, "r") as f:
+        text = f.read()
+    return text
+
+
 def get_text(file, get_all=False, level=2):
     if os.path.islink(file):
         return ""
@@ -313,9 +324,15 @@ def get_project_name(project=""):
 
 
 def freq_get_file_name(name=""):
-    now = datetime.now().strftime("%Y%m%d")
+    # now = datetime.now().strftime("%Y%m%d")
     # return "data/freq-{}-{}.txt".format(name, now)
     return "metadata/freq-{}.txt".format(name)
+
+
+def freq_simple_get_file_name(name=""):
+    # now = datetime.now().strftime("%Y%m%d")
+    # return "data/freq-{}-{}.txt".format(name, now)
+    return "metadata/freq-simple-{}.txt".format(name)
 
 
 def alltypo_get_file_name(name=""):

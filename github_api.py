@@ -78,8 +78,8 @@ def query_data(user_id="", cursor=""):
     headers = {"Authorization": "token %s" % api_token}
     json = {"query": req}
     response = requests.post(url=url, json=json, headers=headers)
-    print(response.status_code)
-    print(response.text)
+    #print(response.status_code)
+    #print(response.text)
     return response.json()
 
 

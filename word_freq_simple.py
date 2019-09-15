@@ -1,12 +1,11 @@
+# 对代码进行简单的分词，统计词频
 import simplejson
 from utils.helper import get_project
 from collections import defaultdict
 
-from utils.helper import parse_words, get_text, clean_text, walk_dir, get_project_name, freq_get_file_name, timer
+from utils.helper import parse_raw_words, get_text_simple, walk_dir, get_project_name, freq_simple_get_file_name, timer
 
-# (todo) multiprocessing to reduce running time
-# https://pymotw.com/2/multiprocessing/communication.html
-# https://www.journaldev.com/15631/python-multiprocessing-example
+
 def project_word_freq():
     allfrq = defaultdict(int)
     for path in get_project():
@@ -15,7 +14,7 @@ def project_word_freq():
         for i in data:
             allfrq[i] += data[i]
     data = simplejson.dumps(allfrq, indent=4, item_sort_key=lambda i: (-i[1], i[0]))
-    with open(freq_get_file_name("all"), "w") as f:
+    with open(freq_simple_get_file_name("all"), "w") as f:
         f.write(data)
 
 
@@ -23,14 +22,13 @@ def project_word_freq():
 def get_word_frequency(project=""):
     wfrq = defaultdict(int)
     for file in walk_dir(project):
-        raw_text = get_text(file, get_all=True)
-        clear_text = clean_text(raw_text)
-        words = parse_words(clear_text)
+        raw_text = get_text_simple(file)
+        words = parse_raw_words(raw_text)
         for word in words:
-            wfrq[word.lower()] += 1
+            wfrq[word] += 1
     proj_name = get_project_name(project)
     data = simplejson.dumps(wfrq, indent=4, item_sort_key=lambda i: (-i[1], i[0]))
-    with open(freq_get_file_name(proj_name), "w") as f:
+    with open(freq_simple_get_file_name(proj_name), "w") as f:
         f.write(data)
     return wfrq
 
