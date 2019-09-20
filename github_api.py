@@ -252,7 +252,7 @@ def print_report():
     for pr in merged:
         if begin < pr["mergedAt"] < stop:
             report.append(pr)
-    report = sorted(report, key=lambda item: (item["url"], item["mergedAt"]), reverse=True)
+    # report = sorted(report, key=lambda item: (item["url"], item["mergedAt"]), reverse=True)
     for item in report:
         print(item["mergedAt"], item["url"])
     print("count:", len(report))
