@@ -25,6 +25,7 @@ def get_all_prs(user_id=""):
     while data["data"]["user"]["pullRequests"]["pageInfo"]["hasNextPage"]:
         end_cursor = data["data"]["user"]["pullRequests"]["pageInfo"]["endCursor"]
         data = query_data(user_id=user_id, cursor=end_cursor)
+        print(data)
         new_pr = data["data"]["user"]["pullRequests"]["nodes"]
         all_prs.extend(new_pr)
     assert len(all_prs) == total_count
