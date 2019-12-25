@@ -29,7 +29,7 @@ def project_docs(project):
             continue
         if file.endswith("_test.go") or file.endswith(".pb.go"):
             continue
-        if get_file_extension(file) == "go":
+        if get_file_extension(file) == "md":
             find_dup_line(file)
 
 
@@ -121,9 +121,9 @@ projects = [
     #    "/home/matrix/go/src/github.com/kubernetes-sigs/azurefile-csi-driver",
     #    "/home/matrix/go/src/github.com/kubernetes-sigs/aws-efs-csi-driver",
     #    "/home/matrix/go/src/github.com/ceph/ceph-csi",
-    #     "/home/matrix/go/src/k8s.io/kubernetes",
+        "/home/matrix/go/src/k8s.io/kubernetes",
     #    "/home/matrix/go/src/k8s.io/helm",
-    "/home/matrix/go/src/"
+    # "/home/matrix/go/src/"
 ]
 
 if __name__ == "__main__":
