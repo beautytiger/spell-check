@@ -245,7 +245,10 @@ def print_timedelta(delta):
 def print_report():
     # range [16, 16)
     now = datetime.now()
-    begin = "{}-{:02d}-16".format(now.year, now.month - 1)
+    if now.month == 1:
+        begin = "{}-{:02d}-16".format(now.year-1, 12)
+    else:
+        begin = "{}-{:02d}-16".format(now.year, now.month - 1)
     stop = "{}-{:02d}-16".format(now.year, now.month)
     begin = datetime.strptime(begin, "%Y-%m-%d")
     stop = datetime.strptime(stop, "%Y-%m-%d")
